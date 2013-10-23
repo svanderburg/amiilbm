@@ -27,7 +27,6 @@
 #include <libraries/asl.h>
 #include <clib/asl_protos.h>
 
-
 char *AMI_ILBM_openILBMFile(struct Window *window, char *initialDrawer)
 {
     char *filename;

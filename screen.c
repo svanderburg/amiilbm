@@ -20,26 +20,114 @@
  */
 
 #include "screen.h"
-#include <exec/memory.h>
+#include <stdlib.h>
+#include <stdio.h>
+
 #include <graphics/gfx.h>
+#include <graphics/displayinfo.h>
 #include <intuition/intuition.h>
 
-#include <clib/exec_protos.h>
 #include <clib/graphics_protos.h>
-#include <clib/intuition_protos.h>
 
 #include <libilbm/byterun.h>
 #include <libilbm/interleave.h>
+#include <libamivideo/screen.h>
+#include <libamivideo/viewportmode.h>
 
-#include <libamivideo/bitplane.h>
+void AMI_ILBM_initPaletteFromImage(const ILBM_Image *image, amiVideo_Palette *palette)
+{
+    amiVideo_initPalette(palette, image->bitMapHeader->nPlanes, 8, 0);
+    
+    if(image->colorMap == NULL)
+	amiVideo_setBitplanePaletteColors(palette, NULL, 0); /* If no colormap is provided, set the palette to 0 */
+    else
+	amiVideo_setBitplanePaletteColors(palette, (amiVideo_Color*)image->colorMap->colorRegister, image->colorMap->colorRegisterLength);
+}
 
-#include "palette.h"
+amiVideo_ULong AMI_ILBM_extractViewportModeFromImage(const ILBM_Image *image)
+{
+    amiVideo_ULong paletteFlags, resolutionFlags;
+    
+    if(image->viewport == NULL)
+        paletteFlags = 0; /* If no viewport value is set, assume 0 value */
+    else
+	paletteFlags = amiVideo_extractPaletteFlags(image->viewport->viewportMode); /* Only the palette flags can be considered "reliable" from a viewport mode value */
+	
+    /* Resolution flags are determined by looking at the page dimensions */
+    resolutionFlags = amiVideo_autoSelectViewportMode(image->bitMapHeader->pageWidth, image->bitMapHeader->pageHeight);
+    
+    /* Return the combined settings of the previous */
+    return paletteFlags | resolutionFlags;
+}
+
+int AMI_ILBM_agaIsSupported()
+{
+    struct DisplayInfo displayInfo;
+    
+    if(GetDisplayInfoData(NULL, (UBYTE*)&displayInfo, sizeof(struct DisplayInfo), DTAG_DISP, NULL))
+	return (displayInfo.RedBits == 8);
+    else
+    {
+	fprintf(stderr, "WARNING: No display info found! Assuming we have an ECS chipset!\n");
+	return FALSE;
+    }
+}
+
+void AMI_ILBM_setPalette(struct Screen *screen, const amiVideo_Palette *palette)
+{
+    if(AMI_ILBM_agaIsSupported())
+    {
+        amiVideo_ULong *colorSpecs = amiVideo_generateRGB32ColorSpecs(palette);
+        LoadRGB32(&screen->ViewPort, (ULONG*)colorSpecs);
+        free(colorSpecs);
+    }
+    else
+    {
+        amiVideo_UWord *colorSpecs = amiVideo_generateRGB4ColorSpecs(palette);
+        LoadRGB4(&screen->ViewPort, (UWORD*)colorSpecs, palette->bitplaneFormat.numOfColors);
+        free(colorSpecs);
+    }
+}
+
+struct BitMap *AMI_ILBM_generateBitMap(ILBM_Image *image)
+{
+    IFF_UByte nPlanes = image->bitMapHeader->nPlanes;
+    struct BitMap *bitmap = AllocBitMap(image->bitMapHeader->w, image->bitMapHeader->h, nPlanes, BMF_DISPLAYABLE, NULL);
+    
+    /* Decompress the image body */
+    ILBM_unpackByteRun(image);
+    
+    if(ILBM_imageIsPBM(image))
+    {
+	amiVideo_Screen screen;
+	
+	/* Initialise screen width the image's dimensions, bitplane depth, and viewport mode */
+	amiVideo_initScreen(&screen, image->bitMapHeader->w, image->bitMapHeader->h, image->bitMapHeader->nPlanes, 8, 0);
+	
+	/* A PBM has chunky pixels in its body, so set the chunky pointer to them */
+	amiVideo_setScreenUncorrectedChunkyPixelsPointer(&screen, (amiVideo_UByte*)image->body->chunkData, image->bitMapHeader->w);
+	
+	/* Set bitplane pointers to the bitmap */
+	amiVideo_setScreenBitplanePointers(&screen, (amiVideo_UByte**)bitmap->Planes);
+	
+	/* Do the conversion */
+	amiVideo_convertScreenChunkyPixelsToBitplanes(&screen);
+	
+	/* Cleanup */
+	amiVideo_cleanupScreen(&screen);
+    }
+    else
+	ILBM_deinterleaveToBitplaneMemory(image, (IFF_UByte**)bitmap->Planes);
+    
+    /* Return bitmap */
+    return bitmap;
+}
 
 struct Screen *AMI_ILBM_createScreen(const ILBM_Image *image)
 {
     UWORD pens[] = { ~0 };
     
-    UWORD viewportMode = AMI_ILBM_calculateViewPortMode(image);
+    UWORD viewportMode = AMI_ILBM_extractViewportModeFromImage(image);
     
     struct Rectangle dclip = { 0, 0, image->bitMapHeader->pageWidth, image->bitMapHeader->pageHeight };
     
@@ -78,64 +166,3 @@ struct Window *AMI_ILBM_createWindow(ILBM_Image *image, struct Screen *screen)
     
     return OpenWindowTagList(NULL, windowTags);
 }
-
-void AMI_ILBM_setPalette(struct Screen *screen, const ILBM_Image *image)
-{
-    if(AMI_ILBM_agaIsSupported())
-    {
-        ULONG colorSpecsSize;
-        ULONG *colorSpecs = AMI_ILBM_generate24BitPalette(image, &colorSpecsSize);
-
-        LoadRGB32(&screen->ViewPort, colorSpecs);
-
-        FreeMem(colorSpecs, colorSpecsSize);
-    }
-    else
-    {
-        ULONG colorSpecsSize;
-        UWORD *colorSpecs = AMI_ILBM_generate12BitPalette(image, &colorSpecsSize);
-
-        LoadRGB4(&screen->ViewPort, (UWORD*)colorSpecs, image->colorMap->colorRegisterLength);
-
-        FreeMem(colorSpecs, colorSpecsSize);
-    }
-}
-
-struct BitMap *AMI_ILBM_generateBitMap(ILBM_Image *image)
-{
-    struct BitMap *bitmap;
-    IFF_UByte nPlanes = image->bitMapHeader->nPlanes;
-    
-    ILBM_unpackByteRun(image);
-    
-    bitmap = AllocBitMap(image->bitMapHeader->w, image->bitMapHeader->h, nPlanes, BMF_DISPLAYABLE, NULL);
-    
-    if(ILBM_imageIsPBM(image))
-	amiVideo_chunkyToBitplaneMemory((amiVideo_UByte**)bitmap->Planes, (amiVideo_UByte*)image->body->chunkData, image->bitMapHeader->w, image->bitMapHeader->h, nPlanes);
-    else
-	ILBM_deinterleaveToBitplaneMemory(image, (IFF_UByte**)bitmap->Planes);
-    
-    /* Return bitmap */
-    return bitmap;
-}
-
-UWORD AMI_ILBM_calculateViewPortMode(const ILBM_Image *image)
-{
-    UWORD viewportMode;
-    
-    if(image->viewport == NULL)
-	viewportMode = 0; /* If there is no viewport chunk, we shouldn't do anything */
-    else
-	viewportMode = image->viewport->viewportMode & (HAM | EXTRA_HALFBRITE); /* Only take EHB and HAM flags from the ILBM viewport chunk */
-
-    /* If the page width is larger than 368 (320 width + max overscan), we use the hi-res screen mode */
-    if(image->bitMapHeader->pageWidth > 368)
-	viewportMode |= HIRES;
-
-    /* If the page height is larger than 290 (256 height + max overscan), we have a laced screen mode */
-    if(image->bitMapHeader->pageHeight > 290)
-	viewportMode |= LACE;
-
-    return viewportMode;
-}
-

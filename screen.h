@@ -23,16 +23,23 @@
 #define __AMI_ILBM_SCREEN_H
 
 #include <exec/types.h>
+#include <clib/intuition_protos.h>
+
 #include <libilbm/ilbmimage.h>
+#include <libamivideo/palette.h>
+
+void AMI_ILBM_initPaletteFromImage(const ILBM_Image *image, amiVideo_Palette *palette);
+
+amiVideo_ULong AMI_ILBM_extractViewportModeFromImage(const ILBM_Image *image);
+
+int AMI_ILBM_agaIsSupported();
+
+void AMI_ILBM_setPalette(struct Screen *screen, const amiVideo_Palette *palette);
+
+struct BitMap *AMI_ILBM_generateBitMap(ILBM_Image *image);
 
 struct Screen *AMI_ILBM_createScreen(const ILBM_Image *image);
 
 struct Window *AMI_ILBM_createWindow(ILBM_Image *image, struct Screen *screen);
-
-void AMI_ILBM_setPalette(struct Screen *screen, const ILBM_Image *image);
-
-struct BitMap *AMI_ILBM_generateBitMap(ILBM_Image *image);
-
-UWORD AMI_ILBM_calculateViewPortMode(const ILBM_Image *image);
 
 #endif

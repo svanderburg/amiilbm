@@ -37,7 +37,6 @@
 #include <libilbm/ilbm.h>
 #include <libilbm/ilbmimage.h>
 
-#include "palette.h"
 #include "screen.h"
 #include "filepicker.h"
 
@@ -167,8 +166,13 @@ static int initViewerScreen(ViewerScreen *viewerScreen, ILBM_Image *image, int p
     }
     else
     {
+	amiVideo_Palette palette;
+	
+	/* Generate a palette from the image */
+	AMI_ILBM_initPaletteFromImage(image, &palette);
+	
 	/* Set the palette of the screen, having the same as defined in the image */
-	AMI_ILBM_setPalette(viewerScreen->screen, image);
+	AMI_ILBM_setPalette(viewerScreen->screen, &palette);
 	
 	/* Open a window */
 	viewerScreen->window = AMI_ILBM_createWindow(image, viewerScreen->screen);
@@ -181,10 +185,8 @@ static int initViewerScreen(ViewerScreen *viewerScreen, ILBM_Image *image, int p
 	}
 	else
 	{
-	    APTR vi;
-	    
 	    /* Get some visual info required to properly generate the menu layout */
-	    vi = GetVisualInfo(viewerScreen->screen, TAG_END);
+	    APTR vi = GetVisualInfo(viewerScreen->screen, TAG_END);
 	    
 	    if(vi == NULL)
 	    {
