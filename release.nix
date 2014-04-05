@@ -1,5 +1,8 @@
 { nixpkgs ? <nixpkgs>
 , amigaosenvPath ? <amigaosenv>
+, libiffJobset ? import ../libiff/release.nix { inherit nixpkgs; buildForAmiga = true; }
+, libilbmJobset ? import ../libilbm/release.nix { inherit nixpkgs; buildForAmiga = true; }
+, libamivideoJobset ? import ../libamivideo/release.nix { inherit nixpkgs; buildForAmiga = true; }
 }:
 
 let
@@ -14,11 +17,11 @@ let
 in
 {
   build =
-    { libiff ? ((import ../libiff/release.nix { buildForAmiga = true; }).build {}).m68k-amigaos.lib
-    , libilbm ? ((import ../libilbm/release.nix { buildForAmiga = true; }).build {}).m68k-amigaos.lib {}
-    , libamivideo ? ((import ../libamivideo/release.nix { buildForAmiga = true; }).build {}).m68k-amigaos
-    }:
-  
+    let
+      libiff = libiffJobset.build.m68k-amigaos.lib;
+      libilbm = libilbmJobset.build.m68k-amigaos.lib;
+      libamivideo = libamivideoJobset.build.m68k-amigaos;
+    in
     amigaosenv.mkDerivation {
       name = "amiilbm";
       src = ./.;
