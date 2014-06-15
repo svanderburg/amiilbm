@@ -10,6 +10,7 @@ Features
 * Supports the ECS chipset as well as the more advanced AGA chipset
 * Knows how to deal with IFF scrap files; IFF files containing multiple images, or multiple FORM chunks
 * Supports Extra Half-Brite (EHB), HAM, hires and interlace screen properties
+* Supports non-interleaved ACBM images
 * Can also display Deluxe Paint PC images, by converting chunky graphics into planar graphics data
 
 Prerequisites
