@@ -6,7 +6,7 @@ PREFIX = /gg
 %.o: %.c
 	$(CC) $(CFLAGS) -c $<
 
-ilbmviewer: screen.o filepicker.o viewer.o main.o
+ilbmviewer: image.o filepicker.o viewer.o main.o
 	$(CC) $(CFLAGS) -o $@ $? -lilbm -liff -lamivideo
 
 all: ilbmviewer

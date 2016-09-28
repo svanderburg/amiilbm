@@ -19,8 +19,8 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef __AMI_ILBM_SCREEN_H
-#define __AMI_ILBM_SCREEN_H
+#ifndef __AMI_ILBM_IMAGE_H
+#define __AMI_ILBM_IMAGE_H
 
 #include <exec/types.h>
 #include <clib/intuition_protos.h>

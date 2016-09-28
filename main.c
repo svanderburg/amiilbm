@@ -79,7 +79,10 @@ static int openLibraries()
     AslBase = OpenLibrary("asl.library", ASL_VERSION);
     
     if(AslBase == NULL)
+    {
 	fprintf(stderr, "Cannot open asl.library!\n");
+	return FALSE;
+    }
     
     return TRUE;
 }
@@ -107,7 +110,8 @@ int main(int argc, char *argv[])
     char *aslFilename = NULL, *filename;
     int status;
     
-    openLibraries();
+    if(!openLibraries())
+        return 1;
     
     if(argc > 1)
 	filename = argv[1]; /* If a command-line filename is given -> use it */

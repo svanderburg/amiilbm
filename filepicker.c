@@ -30,8 +30,6 @@
 char *AMI_ILBM_openILBMFile(struct Window *window, char *initialDrawer)
 {
     char *filename;
-    struct FileRequester *requester;
-    int success;
     
     struct TagItem requestTags[] = {
 	{ASLFR_Window, window},
@@ -40,13 +38,11 @@ char *AMI_ILBM_openILBMFile(struct Window *window, char *initialDrawer)
 	{ASLFR_RejectIcons, TRUE},
 	{TAG_DONE, NULL}
     };
-
+    
     /* Open requester */
-    requester = (struct FileRequester*)AllocAslRequest(ASL_FileRequest, requestTags);
+    struct FileRequester *requester = (struct FileRequester*)AllocAslRequest(ASL_FileRequest, requestTags);
     
-    success = AslRequest(requester, 0);
-    
-    if(success)
+    if(AslRequest(requester, 0))
     {
 	/* Create filename path */
 	filename = (char*)malloc((strlen(requester->fr_Drawer) + 1 + strlen(requester->fr_File) + 1) * sizeof(char));

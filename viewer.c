@@ -37,7 +37,7 @@
 #include <libilbm/ilbm.h>
 #include <libilbm/ilbmimage.h>
 
-#include "screen.h"
+#include "image.h"
 #include "filepicker.h"
 
 typedef enum
@@ -56,9 +56,9 @@ typedef struct
     struct Window *window;
     struct Menu *menu;
 }
-ViewerScreen;
+ViewerDisplay;
 
-static Action handleScreenActions(ViewerScreen *viewerScreen, char **filename)
+static Action handleScreenActions(ViewerDisplay *viewerDisplay, char **filename)
 {
     Action action = ACTION_ERROR;
     int showTitleStatus = TRUE;
@@ -67,11 +67,11 @@ static Action handleScreenActions(ViewerScreen *viewerScreen, char **filename)
     {
         struct IntuiMessage *msg;
 	
-	/* Wait for a message from the windows' user port */
-        Wait(1 << viewerScreen->window->UserPort->mp_SigBit);
+	/* Wait for a message from the window's user port */
+        Wait(1 << viewerDisplay->window->UserPort->mp_SigBit);
 	
 	/* Handle all the messages stored in the message queue */
-        while((msg = (struct IntuiMessage*)GetMsg(viewerScreen->window->UserPort)) != NULL)
+        while((msg = (struct IntuiMessage*)GetMsg(viewerDisplay->window->UserPort)) != NULL)
         {
 	    UWORD menuSelection;
 	
@@ -82,13 +82,8 @@ static Action handleScreenActions(ViewerScreen *viewerScreen, char **filename)
 		    
 		    if(menuSelection != MENUNULL)
 		    {
-		        UWORD menuNum, itemNum;
-			
-			/* Retrieve the number of the menu of the selected menu item */
-		        menuNum = MENUNUM(menuSelection);
-		        
-		        /* Retrieve the number of the menuitem in the selected menu */
-		        itemNum = ITEMNUM(menuSelection);
+		        UWORD menuNum = MENUNUM(menuSelection); /* Retrieve the number of the menu of the selected menu item */
+		        UWORD itemNum = ITEMNUM(menuSelection); /* Retrieve the number of the menuitem in the selected menu */
 			
 			/* Determine which action to execute */
 		        if(menuNum == 0)
@@ -96,7 +91,7 @@ static Action handleScreenActions(ViewerScreen *viewerScreen, char **filename)
 			    switch(itemNum)
 			    {
 				case 0:
-				    *filename = AMI_ILBM_openILBMFile(viewerScreen->window, "");
+				    *filename = AMI_ILBM_openILBMFile(viewerDisplay->window, "");
 				
 				    if(*filename != NULL)
 				        action = ACTION_OPEN;
@@ -113,7 +108,7 @@ static Action handleScreenActions(ViewerScreen *viewerScreen, char **filename)
 				
 				case 3:
 				    showTitleStatus = !showTitleStatus;
-				    ShowTitle(viewerScreen->screen, showTitleStatus);
+				    ShowTitle(viewerDisplay->screen, showTitleStatus);
 				    break;
 				
 				case 4:
@@ -135,31 +130,72 @@ static Action handleScreenActions(ViewerScreen *viewerScreen, char **filename)
     return action;
 }
 
-static void destroyViewerScreen(ViewerScreen *viewerScreen)
+static void destroyViewerDisplay(ViewerDisplay *viewerDisplay)
 {
-    if(viewerScreen->menu != NULL)
+    if(viewerDisplay->menu != NULL)
     {
-	/* Remote the menu strip from the window */
-	ClearMenuStrip(viewerScreen->window);
-	
-	FreeMenus(viewerScreen->menu);
+	ClearMenuStrip(viewerDisplay->window); /* Remove the menu strip from the window */
+	FreeMenus(viewerDisplay->menu);
     }
     
-    if(viewerScreen->window != NULL)
-	CloseWindow(viewerScreen->window);
+    if(viewerDisplay->window != NULL)
+	CloseWindow(viewerDisplay->window);
     
-    if(viewerScreen->screen != NULL)
-	CloseScreen(viewerScreen->screen);
+    if(viewerDisplay->screen != NULL)
+	CloseScreen(viewerDisplay->screen);
 }
 
-static int initViewerScreen(ViewerScreen *viewerScreen, ILBM_Image *image, int previousItemEnabled, int nextItemEnabled)
+static struct Menu *createViewerDisplayMenu(struct Screen *screen, int previousItemEnabled, int nextItemEnabled)
 {
-    memset(viewerScreen, '\0', sizeof(ViewerScreen));
+    /* Get some visual info required to properly generate the menu layout */
+    APTR vi = GetVisualInfo(screen, TAG_END);
+    
+    if(vi == NULL)
+    {
+	fprintf(stderr, "Cannot obtain visual info!\n");
+	return NULL;
+    }
+    else
+    {
+	/* Create a menu */
+	
+	struct NewMenu newMenu[] = {
+	    {NM_TITLE, "Picture", 0, 0, 0, 0},
+	    {NM_ITEM, "Open...", "O", 0, 0, 0},
+	    {NM_ITEM, "Previous", "P", previousItemEnabled ? 0 : NM_ITEMDISABLED, 0, 0},
+	    {NM_ITEM, "Next", "N", nextItemEnabled ? 0 : NM_ITEMDISABLED, 0, 0},
+	    {NM_ITEM, "Hide Title", "S", CHECKIT | MENUTOGGLE, 0, 0},
+	    {NM_ITEM, "Quit", "Q", 0, 0, 0},
+	    {NM_END, NULL, 0, 0, 0, 0}
+	};
+	
+	struct Menu *menu = CreateMenus(newMenu, GTMN_FullMenu, TRUE, TAG_END);
+	
+	if(menu != NULL)
+	{
+	    /* Properly layout the menu items */
+	    if(!LayoutMenus(menu, vi, TAG_END))
+	    {
+		fprintf(stderr, "Cannot calculate menu layout!\n");
+		FreeMenus(menu);
+		menu = NULL;
+	    }
+	}
+	
+	FreeVisualInfo(vi); /* Cleanup */
+	
+	return menu; /* Return generated menu */
+    }
+}
+
+static int initViewerDisplay(ViewerDisplay *viewerDisplay, ILBM_Image *image, int previousItemEnabled, int nextItemEnabled)
+{
+    memset(viewerDisplay, '\0', sizeof(ViewerDisplay));
     
     /* Create a screen containing a window and menu */
-    viewerScreen->screen = AMI_ILBM_createScreen(image);
+    viewerDisplay->screen = AMI_ILBM_createScreen(image);
     
-    if(viewerScreen->screen == NULL)
+    if(viewerDisplay->screen == NULL)
     {
         fprintf(stderr, "Cannot open screen!\n");
         return FALSE;
@@ -172,89 +208,43 @@ static int initViewerScreen(ViewerScreen *viewerScreen, ILBM_Image *image, int p
 	AMI_ILBM_initPaletteFromImage(image, &palette);
 	
 	/* Set the palette of the screen, having the same as defined in the image */
-	AMI_ILBM_setPalette(viewerScreen->screen, &palette);
+	AMI_ILBM_setPalette(viewerDisplay->screen, &palette);
 	
 	/* Open a window */
-	viewerScreen->window = AMI_ILBM_createWindow(image, viewerScreen->screen);
+	viewerDisplay->window = AMI_ILBM_createWindow(image, viewerDisplay->screen);
 	
-	if(viewerScreen->window == NULL)
+	if(viewerDisplay->window == NULL)
 	{
 	    fprintf(stderr, "Cannot open window!\n");
-	    destroyViewerScreen(viewerScreen);
 	    return FALSE;
 	}
-	else
+	
+	/* Construct and set a menu */
+	viewerDisplay->menu = createViewerDisplayMenu(viewerDisplay->screen, previousItemEnabled, nextItemEnabled);
+	
+	if(viewerDisplay->menu == NULL)
 	{
-	    /* Get some visual info required to properly generate the menu layout */
-	    APTR vi = GetVisualInfo(viewerScreen->screen, TAG_END);
-	    
-	    if(vi == NULL)
-	    {
-		fprintf(stderr, "Cannot obtain visual info!\n");
-		destroyViewerScreen(viewerScreen);
-		return FALSE;
-	    }
-	    else
-	    {
-		struct NewMenu newMenu[] = {
-		    {NM_TITLE, "Picture", 0, 0, 0, 0},
-		    {NM_ITEM, "Open...", "O", 0, 0, 0},
-		    {NM_ITEM, "Previous", "P", previousItemEnabled ? 0 : NM_ITEMDISABLED, 0, 0},
-		    {NM_ITEM, "Next", "N", nextItemEnabled ? 0 : NM_ITEMDISABLED, 0, 0},
-		    {NM_ITEM, "Hide Title", "S", CHECKIT | MENUTOGGLE, 0, 0},
-		    {NM_ITEM, "Quit", "Q", 0, 0, 0},
-		    {NM_END, NULL, 0, 0, 0, 0}
-		};
-	    
-		/* Create a menu */
-		struct Menu *menu = CreateMenus(newMenu, GTMN_FullMenu, TRUE, TAG_END);
-	    
-		if(menu == NULL)
-		{
-		    fprintf(stderr, "Cannot create menu!\n");
-		    FreeVisualInfo(vi);
-		    destroyViewerScreen(viewerScreen);
-		    return FALSE;
-		}
-		else
-		{
-		    /* Properly layout the menu items */
-		    if(!LayoutMenus(menu, vi, TAG_END))
-		    {
-			fprintf(stderr, "Cannot calculate menu layout!\n");
-			FreeVisualInfo(vi);
-			destroyViewerScreen(viewerScreen);
-			return FALSE;
-		    }
-		    else
-		    {
-			/* Add the menu strip to the window */
-			SetMenuStrip(viewerScreen->window, menu);
-			
-			/* Visual info is obsolete now */
-			FreeVisualInfo(vi);
-			
-			/* We have set up everything successfully */
-			return TRUE;
-		    }
-		}
-	    }
+	    fprintf(stderr, "Cannot create menu!\n");
+	    return FALSE;
 	}
+	
+	SetMenuStrip(viewerDisplay->window, viewerDisplay->menu); /* Add the menu strip to the window */
+	return TRUE; /* We have set up everything successfully */
     }
 }
 
 static Action displayScreen(ILBM_Image *image, char **filename, int previousItemEnabled, int nextItemEnabled)
 {
-    ViewerScreen viewerScreen;
+    ViewerDisplay viewerDisplay;
+    Action action;
     
-    if(initViewerScreen(&viewerScreen, image, previousItemEnabled, nextItemEnabled))
-    {
-	Action action = handleScreenActions(&viewerScreen, filename);
-	destroyViewerScreen(&viewerScreen);
-	return action;
-    }
+    if(initViewerDisplay(&viewerDisplay, image, previousItemEnabled, nextItemEnabled))
+        action = handleScreenActions(&viewerDisplay, filename);
     else
-	return ACTION_ERROR;
+        action = ACTION_ERROR;
+
+    destroyViewerDisplay(&viewerDisplay);
+    return action;
 }
 
 int AMI_ILBM_viewImages(char *filename)
@@ -286,36 +276,33 @@ int AMI_ILBM_viewImages(char *filename)
 		fprintf(stderr, "This ILBM file is not valid!\n");
 		action = ACTION_ERROR;
 	    }
+	    else if(imagesLength == 0) /* We need at least one 1 ILBM image in the IFF file */
+	    {
+	        fprintf(stderr, "IFF file does not contain any ILBM images!\n");
+	        action = ACTION_ERROR;
+	    }
 	    else
 	    {
-		if(imagesLength == 0) /* We need at least one 1 ILBM image in the IFF file */
-		{
-		    fprintf(stderr, "IFF file does not contain any ILBM images!\n");
-		    action = ACTION_ERROR;
-		}
-		else
-		{
-		    unsigned int imageNumber = 0;
-		
-		    do /* Repeat this every time the user picks the 'Previous' or the 'Next' option */
-		    {
-			action = displayScreen(images[imageNumber], &aslFilename, imageNumber > 0, imageNumber < imagesLength - 1);
-			filename = aslFilename;
+	        unsigned int imageNumber = 0;
+	
+	        do /* Repeat this every time the user picks the 'Previous' or the 'Next' option */
+	        {
+		    action = displayScreen(images[imageNumber], &aslFilename, imageNumber > 0, imageNumber < imagesLength - 1);
+		    filename = aslFilename;
 		    
-			/* If the user has picked 'Previous' or 'Next' we should modify the imageNumber counter */
-			
-			if(action == ACTION_PREVIOUS)
-			    imageNumber--;
-			else if(action == ACTION_NEXT)
-			    imageNumber++;
-		    }
-		    while(action == ACTION_PREVIOUS || action == ACTION_NEXT);
+		    /* If the user has picked 'Previous' or 'Next' we should modify the imageNumber counter */
+		    
+		    if(action == ACTION_PREVIOUS)
+		        imageNumber--;
+		    else if(action == ACTION_NEXT)
+		        imageNumber++;
 		}
-		
-		/* Cleanup */
-		ILBM_freeImages(images, imagesLength);
-		ILBM_free(chunk);
+		while(action == ACTION_PREVIOUS || action == ACTION_NEXT);
 	    }
+	
+	    /* Cleanup */
+	    ILBM_freeImages(images, imagesLength);
+	    ILBM_free(chunk);
 	}
     }
     while(action == ACTION_OPEN);
