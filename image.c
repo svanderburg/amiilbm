@@ -21,135 +21,17 @@
 
 #include "image.h"
 #include <stdlib.h>
-#include <stdio.h>
-
-#include <graphics/gfx.h>
-#include <graphics/displayinfo.h>
-#include <intuition/intuition.h>
+#include <libamivideo/viewportmode.h>
+#include "image2amivideo.h"
+#include "amivideo2bitmap.h"
 
 #include <clib/graphics_protos.h>
 
-#include <libilbm/byterun.h>
-#include <libilbm/interleave.h>
-#include <libamivideo/screen.h>
-#include <libamivideo/viewportmode.h>
+#include "render.h"
 
-void AMI_ILBM_initPaletteFromImage(const ILBM_Image *image, amiVideo_Palette *palette)
-{
-    amiVideo_initPalette(palette, image->bitMapHeader->nPlanes, 8, 0);
-    
-    if(image->colorMap == NULL)
-    {
-        /* If no colormap is provided by the image, use a generated grayscale one */
-        ILBM_ColorMap *colorMap = ILBM_generateGrayscaleColorMap(image);
-        amiVideo_setBitplanePaletteColors(palette, (amiVideo_Color*)colorMap->colorRegister, colorMap->colorRegisterLength);
-        free(colorMap);
-    }
-    else
-        amiVideo_setBitplanePaletteColors(palette, (amiVideo_Color*)image->colorMap->colorRegister, image->colorMap->colorRegisterLength);
-}
-
-amiVideo_ULong AMI_ILBM_extractViewportModeFromImage(const ILBM_Image *image)
-{
-    amiVideo_ULong paletteFlags, resolutionFlags;
-    
-    if(image->viewport == NULL)
-        paletteFlags = 0; /* If no viewport value is set, assume 0 value */
-    else
-        paletteFlags = amiVideo_extractPaletteFlags(image->viewport->viewportMode); /* Only the palette flags can be considered "reliable" from a viewport mode value */
-        
-    /* Resolution flags are determined by looking at the page dimensions */
-    resolutionFlags = amiVideo_autoSelectViewportMode(image->bitMapHeader->pageWidth, image->bitMapHeader->pageHeight);
-    
-    /* Return the combined settings of the previous */
-    return paletteFlags | resolutionFlags;
-}
-
-int AMI_ILBM_agaIsSupported()
-{
-    struct DisplayInfo displayInfo;
-    
-    if(GetDisplayInfoData(NULL, (UBYTE*)&displayInfo, sizeof(struct DisplayInfo), DTAG_DISP, NULL))
-        return (displayInfo.RedBits == 8);
-    else
-    {
-        fprintf(stderr, "WARNING: No display info found! Assuming we have an ECS chipset!\n");
-        return FALSE;
-    }
-}
-
-void AMI_ILBM_setPalette(struct Screen *screen, const amiVideo_Palette *palette)
-{
-    if(AMI_ILBM_agaIsSupported())
-    {
-        amiVideo_ULong *colorSpecs = amiVideo_generateRGB32ColorSpecs(palette);
-        LoadRGB32(&screen->ViewPort, (ULONG*)colorSpecs);
-        free(colorSpecs);
-    }
-    else
-    {
-        amiVideo_UWord *colorSpecs = amiVideo_generateRGB4ColorSpecs(palette);
-        LoadRGB4(&screen->ViewPort, (UWORD*)colorSpecs, palette->bitplaneFormat.numOfColors);
-        free(colorSpecs);
-    }
-}
-
-struct BitMap *AMI_ILBM_generateBitMap(ILBM_Image *image)
-{
-    IFF_UByte nPlanes = image->bitMapHeader->nPlanes;
-    struct BitMap *bitmap = AllocBitMap(image->bitMapHeader->w, image->bitMapHeader->h, nPlanes, BMF_DISPLAYABLE, NULL);
-    
-    /* Decompress the image body */
-    ILBM_unpackByteRun(image);
-    
-    if(ILBM_imageIsPBM(image))
-    {
-        if(image->body != NULL)
-        {
-            amiVideo_Screen screen;
-        
-            /* Initialise screen width the image's dimensions, bitplane depth, and viewport mode */
-            amiVideo_initScreen(&screen, image->bitMapHeader->w, image->bitMapHeader->h, nPlanes, 8, 0);
-        
-            /* A PBM has chunky pixels in its body, so set the chunky pointer to them */
-            amiVideo_setScreenUncorrectedChunkyPixelsPointer(&screen, (amiVideo_UByte*)image->body->chunkData, image->bitMapHeader->w);
-        
-            /* Set bitplane pointers to the bitmap */
-            amiVideo_setScreenBitplanePointers(&screen, (amiVideo_UByte**)bitmap->Planes);
-        
-            /* Do the conversion */
-            amiVideo_convertScreenChunkyPixelsToBitplanes(&screen);
-        
-            /* Cleanup */
-            amiVideo_cleanupScreen(&screen);
-        }
-    }
-    else if(ILBM_imageIsILBM(image))
-        ILBM_deinterleaveToBitplaneMemory(image, (IFF_UByte**)bitmap->Planes);
-    else if(ILBM_imageIsACBM(image))
-    {
-        if(image->bitplanes != NULL)
-        {
-            unsigned int bitplaneSize = ILBM_calculateRowSize(image) * image->bitMapHeader->h;
-            unsigned int i, offset = 0;
-        
-            for(i = 0; i < nPlanes; i++)
-            {
-                memcpy(bitmap->Planes[i], image->bitplanes->chunkData + offset, bitplaneSize);
-                offset += bitplaneSize;
-            }
-        }
-    }
-    
-    /* Return bitmap */
-    return bitmap;
-}
-
-struct Screen *AMI_ILBM_createScreen(const ILBM_Image *image)
+static struct Screen *createIntuitionScreen(const ILBM_Image *image, const amiVideo_Long viewportMode)
 {
     UWORD pens[] = { ~0 };
-    
-    UWORD viewportMode = AMI_ILBM_extractViewportModeFromImage(image);
     
     struct Rectangle dclip = { 0, 0, image->bitMapHeader->pageWidth, image->bitMapHeader->pageHeight };
     
@@ -170,15 +52,65 @@ struct Screen *AMI_ILBM_createScreen(const ILBM_Image *image)
     return OpenScreenTagList(NULL, screenTags);
 }
 
-struct Window *AMI_ILBM_createWindow(ILBM_Image *image, struct Screen *screen)
+int AMI_ILBM_initImage(AMI_ILBM_Image *image, ILBM_Image *ilbmImage)
 {
-    struct BitMap *bitmap = AMI_ILBM_generateBitMap(image);
+    /* Attach some properties to the facade */
+    image->image = ilbmImage;
     
+    /* Initialise the range times */
+    AMI_ILBM_initRangeTimes(&image->rangeTimes, image->image);
+    
+    /* Attach the image to screen conversion pipeline */
+    AMI_ILBM_attachImageToScreen(ilbmImage, &image->screen);
+    
+    /* Create output bitmap */
+    image->bitmap = AMI_ILBM_createBitMapFromScreen(&image->screen);
+    
+    if(image->bitmap == NULL)
+        return FALSE;
+    
+    /* Create output intuition screen */
+    image->intuitionScreen = createIntuitionScreen(ilbmImage, image->screen.viewportMode);
+    
+    if(image->intuitionScreen == NULL)
+        return FALSE;
+    
+    /* Set the screen palette */
+    AMI_ILBM_setScreenPalette(&image->screen.palette, image->intuitionScreen);
+    
+    /* Render the output */
+    AMI_ILBM_renderBitMap(ilbmImage, &image->screen, image->bitmap);
+    
+    return TRUE;
+}
+
+void AMI_ILBM_destroyImage(AMI_ILBM_Image *image)
+{
+    CloseScreen(image->intuitionScreen);
+    FreeBitMap(image->bitmap);
+    amiVideo_cleanupScreen(&image->screen);
+    AMI_ILBM_cleanupRangeTimes(&image->rangeTimes);
+}
+
+void AMI_ILBM_cycleColors(AMI_ILBM_Image *image)
+{
+    AMI_ILBM_shiftActiveRanges(&image->rangeTimes, image->image, &image->screen.palette);
+    AMI_ILBM_setScreenPalette(&image->screen.palette, image->intuitionScreen);
+}
+
+void AMI_ILBM_resetColors(AMI_ILBM_Image *image)
+{
+    AMI_ILBM_initPaletteFromImage(image->image, &image->screen.palette);
+    AMI_ILBM_setScreenPalette(&image->screen.palette, image->intuitionScreen);
+}
+
+struct Window *AMI_ILBM_createWindowFromImage(const AMI_ILBM_Image *image)
+{
     struct TagItem windowTags[] = {
-        {WA_Width, image->bitMapHeader->w},
-        {WA_Height, image->bitMapHeader->h},
-        {WA_CustomScreen, screen},
-        {WA_SuperBitMap, bitmap},
+        {WA_Width, image->image->bitMapHeader->w},
+        {WA_Height, image->image->bitMapHeader->h},
+        {WA_CustomScreen, image->intuitionScreen},
+        {WA_SuperBitMap, image->bitmap},
         {WA_Backdrop, TRUE},
         {WA_Borderless, TRUE},
         {WA_Activate, TRUE},

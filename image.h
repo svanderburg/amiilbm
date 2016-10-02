@@ -22,24 +22,81 @@
 #ifndef __AMI_ILBM_IMAGE_H
 #define __AMI_ILBM_IMAGE_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+typedef struct AMI_ILBM_Image AMI_ILBM_Image;
+
+#include <libilbm/ilbmimage.h>
+#include <libamivideo/screen.h>
 #include <exec/types.h>
 #include <clib/intuition_protos.h>
 
-#include <libilbm/ilbmimage.h>
-#include <libamivideo/palette.h>
+#include "cycle.h"
 
-void AMI_ILBM_initPaletteFromImage(const ILBM_Image *image, amiVideo_Palette *palette);
+/**
+ * @brief Encapsulates the properties of a cyclable image
+ */
+struct AMI_ILBM_Image
+{
+    /** Reference to the ILBM image from which this image is generated */
+    ILBM_Image *image;
+    
+    /** Reference to the screen converting the image to the desired output format */
+    amiVideo_Screen screen;
+    
+    /** Bitmap encoding the pixels as bitplanes */
+    struct BitMap *bitmap;
+    
+    /** Intuition screen suitable for displaying the image */
+    struct Screen *intuitionScreen;
+    
+    /** Maintains the ellapsed cycle range times */
+    AMI_ILBM_RangeTimes rangeTimes;
+};
 
-amiVideo_ULong AMI_ILBM_extractViewportModeFromImage(const ILBM_Image *image);
+/**
+ * Initializes a preallocated AMI_ILBM_Image from a given ILBM image in a specified
+ * output format.
+ *
+ * @param image Preallocated AMI_ILBM_Image instance
+ * @param ilbmImage ILBM image to generate the output from
+ * @return TRUE if the initalisation succeeded, otherwise FALSE
+ */
+int AMI_ILBM_initImage(AMI_ILBM_Image *image, ILBM_Image *ilbmImage);
 
-int AMI_ILBM_agaIsSupported();
+/**
+ * Clears the properties of the provided image from memory.
+ * 
+ * @param image An AMI_ILBM_Image instance
+ */
+void AMI_ILBM_destroyImage(AMI_ILBM_Image *image);
 
-void AMI_ILBM_setPalette(struct Screen *screen, const amiVideo_Palette *palette);
+/**
+ * Checks whether the range times have ellapsed and cycles the
+ * corresponding colors in the palette accordingly.
+ *
+ * @param image An AMI_ILBM_Image instance
+ */
+void AMI_ILBM_cycleColors(AMI_ILBM_Image *image);
 
-struct BitMap *AMI_ILBM_generateBitMap(ILBM_Image *image);
+/**
+ * Resets the colors in the palette back to normal.
+ *
+ * @param image An AMI_ILBM_Image instance
+ */
+void AMI_ILBM_resetColors(AMI_ILBM_Image *image);
 
-struct Screen *AMI_ILBM_createScreen(const ILBM_Image *image);
+/**
+ * Constructs a window suitable for displaying a given image
+ *
+ * @param image An AMI_ILBM_Image instance
+ */
+struct Window *AMI_ILBM_createWindowFromImage(const AMI_ILBM_Image *image);
 
-struct Window *AMI_ILBM_createWindow(ILBM_Image *image, struct Screen *screen);
+#ifdef __cplusplus
+}
+#endif
 
 #endif
