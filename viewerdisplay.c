@@ -54,7 +54,7 @@ static struct Menu *createViewerDisplayMenu(struct Screen *screen, const int pre
 	    {NM_ITEM, "Previous", "P", previousItemEnabled ? 0 : NM_ITEMDISABLED, 0, 0},
 	    {NM_ITEM, "Next", "N", nextItemEnabled ? 0 : NM_ITEMDISABLED, 0, 0},
 	    {NM_ITEM, "Hide Title", "S", CHECKIT | MENUTOGGLE, 0, 0},
-	    {NM_ITEM, "Cycle", "C", CHECKIT, 0, 0},
+	    {NM_ITEM, "Cycle", "C", CHECKIT | MENUTOGGLE, 0, 0},
 	    {NM_ITEM, "Quit", "Q", 0, 0, 0},
 	    {NM_END, NULL, 0, 0, 0, 0}
 	};
@@ -87,7 +87,7 @@ void cycleTask()
         if(viewerDisplay.cycleModeEnabled)
             AMI_ILBM_cycleColors(&viewerDisplay.image);
         else
-           AMI_ILBM_resetColors(&viewerDisplay.image); /* Restore the palette back to normal */
+            AMI_ILBM_resetColors(&viewerDisplay.image); /* Restore the palette back to normal */
     }
     
     viewerDisplay.cycleTaskTerminated = TRUE;

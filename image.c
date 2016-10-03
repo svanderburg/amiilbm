@@ -36,8 +36,8 @@ static struct Screen *createIntuitionScreen(const ILBM_Image *image, const amiVi
     struct Rectangle dclip = { 0, 0, image->bitMapHeader->pageWidth, image->bitMapHeader->pageHeight };
     
     struct TagItem screenTags[] = {
-        {SA_Width, image->bitMapHeader->pageWidth},
-        {SA_Height, image->bitMapHeader->pageHeight},
+        {SA_Width, image->bitMapHeader->w},
+        {SA_Height, image->bitMapHeader->h},
         {SA_Depth, image->bitMapHeader->nPlanes},
         {SA_Title, "ILBM viewer"},
         {SA_Pens, pens},
