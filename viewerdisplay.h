@@ -36,7 +36,7 @@ typedef enum
     ACTION_QUIT,
     ACTION_ERROR
 }
-Action;
+AMI_ILBM_Action;
 
 typedef struct
 {
@@ -48,20 +48,20 @@ typedef struct
     int cycleModeEnabled;
     int cycleTaskTerminated;
 }
-ViewerDisplay;
+AMI_ILBM_ViewerDisplay;
 
 /**
  * Viewer display is a singleton instance that can be referenced both from the
  * program as well as the cycle task
  */
-ViewerDisplay viewerDisplay;
+AMI_ILBM_ViewerDisplay viewerDisplay;
 
-extern void cycleTask();
+extern void AMI_ILBM_cycleTask();
 
-int initViewerDisplay(AMI_ILBM_Set *set, const unsigned int number, const int previousItemEnabled, const int nextItemEnabled);
+int AMI_ILBM_initViewerDisplay(AMI_ILBM_Set *set, const unsigned int number, const int previousItemEnabled, const int nextItemEnabled);
 
-void destroyViewerDisplay(void);
+void AMI_ILBM_destroyViewerDisplay(void);
 
-Action handleScreenActions(char **filename);
+AMI_ILBM_Action AMI_ILBM_handleScreenActions(char **filename);
 
 #endif

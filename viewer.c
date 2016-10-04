@@ -25,18 +25,18 @@
 #include "set.h"
 #include "viewerdisplay.h"
 
-static Action viewILBMImage(AMI_ILBM_Set *set, const unsigned int number, char **filename, const int previousItemEnabled, const int nextItemEnabled)
+static AMI_ILBM_Action viewILBMImage(AMI_ILBM_Set *set, const unsigned int number, char **filename, const int previousItemEnabled, const int nextItemEnabled)
 {
-    Action action;
+    AMI_ILBM_Action action;
     
     /* Initialise a viewer display and handle all user inputs */
-    if(initViewerDisplay(set, number, previousItemEnabled, nextItemEnabled))
-        action = handleScreenActions(filename);
+    if(AMI_ILBM_initViewerDisplay(set, number, previousItemEnabled, nextItemEnabled))
+        action = AMI_ILBM_handleScreenActions(filename);
     else
         action = ACTION_ERROR;
     
     /* Cleanup */
-    destroyViewerDisplay();
+    AMI_ILBM_destroyViewerDisplay();
     
     /* Return action */
     return action;
@@ -45,7 +45,7 @@ static Action viewILBMImage(AMI_ILBM_Set *set, const unsigned int number, char *
 int AMI_ILBM_viewImages(char *filename)
 {
     char *aslFilename = NULL;
-    Action action;
+    AMI_ILBM_Action action;
     
     do /* Repeat this every time the user picks the 'Open file' option */
     {

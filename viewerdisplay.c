@@ -78,7 +78,7 @@ static struct Menu *createViewerDisplayMenu(struct Screen *screen, const int pre
     }
 }
 
-void cycleTask()
+void AMI_ILBM_cycleTask()
 {
     while(!viewerDisplay.cycleTaskMustStop)
     {
@@ -100,7 +100,7 @@ static struct Task *createCycleTask(void)
     viewerDisplay.cycleTaskTerminated = FALSE;
     viewerDisplay.cycleModeEnabled = FALSE;
     
-    return CreateTask("amiilbmCycleTask", 0, cycleTask, 4000L);
+    return CreateTask("amiilbmCycleTask", 0, AMI_ILBM_cycleTask, 4000L);
 }
 
 static void deleteCycleTask(struct Task *task)
@@ -119,9 +119,9 @@ static void deleteCycleTask(struct Task *task)
     }
 }
 
-int initViewerDisplay(AMI_ILBM_Set *set, const unsigned int number, const int previousItemEnabled, const int nextItemEnabled)
+int AMI_ILBM_initViewerDisplay(AMI_ILBM_Set *set, const unsigned int number, const int previousItemEnabled, const int nextItemEnabled)
 {
-    memset(&viewerDisplay, '\0', sizeof(ViewerDisplay));
+    memset(&viewerDisplay, '\0', sizeof(AMI_ILBM_ViewerDisplay));
     
     /* Initialise image from the set and attach it to the viewer display */
     if(!AMI_ILBM_initImageFromSet(set, number, &viewerDisplay.image))
@@ -163,7 +163,7 @@ int initViewerDisplay(AMI_ILBM_Set *set, const unsigned int number, const int pr
     return TRUE; /* We have set up everything successfully */
 }
 
-void destroyViewerDisplay(void)
+void AMI_ILBM_destroyViewerDisplay(void)
 {
     deleteCycleTask(viewerDisplay.task);
     
@@ -179,9 +179,9 @@ void destroyViewerDisplay(void)
     AMI_ILBM_destroyImage(&viewerDisplay.image);
 }
 
-Action handleScreenActions(char **filename)
+AMI_ILBM_Action AMI_ILBM_handleScreenActions(char **filename)
 {
-    Action action = ACTION_ERROR;
+    AMI_ILBM_Action action = ACTION_ERROR;
     int showTitleStatus = TRUE;
     
     while(action == ACTION_ERROR)
