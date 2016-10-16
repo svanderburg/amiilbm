@@ -1,8 +1,11 @@
 { nixpkgs ? <nixpkgs>
 , amigaosenvPath ? <amigaosenv>
-, libiffJobset ? import ../libiff/release.nix { inherit nixpkgs; buildForAmiga = true; }
-, libilbmJobset ? import ../libilbm/release.nix { inherit nixpkgs; buildForAmiga = true; }
-, libamivideoJobset ? import ../libamivideo/release.nix { inherit nixpkgs; buildForAmiga = true; }
+, kickstartROMFile ? null
+, baseDiskImage ? null
+, useUAE ? true
+, libiffJobset ? import ../libiff/release.nix { inherit nixpkgs kickstartROMFile baseDiskImage useUAE; buildForAmiga = true; }
+, libilbmJobset ? import ../libilbm/release.nix { inherit nixpkgs kickstartROMFile baseDiskImage useUAE; buildForAmiga = true; }
+, libamivideoJobset ? import ../libamivideo/release.nix { inherit nixpkgs kickstartROMFile baseDiskImage useUAE; buildForAmiga = true; }
 }:
 
 let
@@ -11,8 +14,8 @@ let
   version = builtins.readFile ./version;
   
   amigaosenv = import amigaosenvPath {
-    inherit (pkgs) stdenv uae procps;
-    lndir = pkgs.xorg.lndir;
+    inherit (pkgs) stdenv fetchurl lhasa uae fsuae procps bchunk cdrtools;
+    inherit (pkgs.xorg) lndir;
   };
 in
 {
@@ -31,5 +34,6 @@ in
         make PREFIX=/OUT
         make PREFIX=/OUT install
       '';
+      inherit kickstartROMFile baseDiskImage useUAE;
     };
 }
