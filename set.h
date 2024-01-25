@@ -39,10 +39,10 @@ struct AMI_ILBM_Set
 {
     /** Reference to a parsed chunk originating from an IFF file */
     IFF_Chunk *chunk;
-    
+
     /** An array extracted ILBM images from an IFF file */
     ILBM_Image **ilbmImages;
-    
+
     /** Specifies the length of the ILBM images array */
     unsigned int imagesLength;
 };
@@ -54,7 +54,7 @@ struct AMI_ILBM_Set
  * @param filename Path to an IFF file to open
  * @return TRUE if the initialization succeeded, else FALSE
  */
-int AMI_ILBM_initSetFromFilename(AMI_ILBM_Set *set, const char *filename);
+amiVideo_Bool AMI_ILBM_initSetFromFilename(AMI_ILBM_Set *set, const char *filename);
 
 /**
  * Initializes a preallocated cyclable AMI_ILBM_Image from an image in the set.
@@ -63,7 +63,7 @@ int AMI_ILBM_initSetFromFilename(AMI_ILBM_Set *set, const char *filename);
  * @param index Index of the image in the set
  * @return TRUE if the initialization succeeded, else FALSE
  */
-int AMI_ILBM_initImageFromSet(const AMI_ILBM_Set *set, const unsigned int index, AMI_ILBM_Image *image);
+amiVideo_Bool AMI_ILBM_initImageFromSet(const AMI_ILBM_Set *set, const unsigned int index, AMI_ILBM_Image *image);
 
 /**
  * Clears all properties of a set from memory.

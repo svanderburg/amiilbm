@@ -30,36 +30,36 @@
 char *AMI_ILBM_openILBMFile(struct Window *window, char *initialDrawer)
 {
     char *filename;
-    
+
     struct TagItem requestTags[] = {
-	{ASLFR_Window, window},
-	{ASLFR_TitleText, "Pick an ILBM file"},
-	{ASLFR_InitialDrawer, initialDrawer},
-	{ASLFR_RejectIcons, TRUE},
-	{TAG_DONE, NULL}
+        {ASLFR_Window, window},
+        {ASLFR_TitleText, "Pick an ILBM file"},
+        {ASLFR_InitialDrawer, initialDrawer},
+        {ASLFR_RejectIcons, TRUE},
+        {TAG_DONE, NULL}
     };
-    
+
     /* Open requester */
     struct FileRequester *requester = (struct FileRequester*)AllocAslRequest(ASL_FileRequest, requestTags);
-    
+
     if(AslRequest(requester, 0))
     {
-	/* Create filename path */
-	filename = (char*)malloc((strlen(requester->fr_Drawer) + 1 + strlen(requester->fr_File) + 1) * sizeof(char));
-    
-	/* Append drawer value */
-	strcat(filename, requester->fr_Drawer);
-    
-	/* If the drawer is not an assignment, add a / */
-	if(requester->fr_Drawer[strlen(requester->fr_Drawer) - 1] != ':')
-	    strcat(filename, "/");
-    
-	/* Append the filename */
-	strcat(filename, requester->fr_File);
+        /* Create filename path */
+        filename = (char*)malloc((strlen(requester->fr_Drawer) + 1 + strlen(requester->fr_File) + 1) * sizeof(char));
+
+        /* Append drawer value */
+        strcat(filename, requester->fr_Drawer);
+
+        /* If the drawer is not an assignment, add a / */
+        if(requester->fr_Drawer[strlen(requester->fr_Drawer) - 1] != ':')
+            strcat(filename, "/");
+
+        /* Append the filename */
+        strcat(filename, requester->fr_File);
     }
     else
-	filename = NULL;
-	
+        filename = NULL;
+
     /* Cleanup */
     FreeAslRequest(requester);
 

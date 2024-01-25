@@ -29,10 +29,10 @@
 
 #include <clib/graphics_protos.h>
 
-int AMI_ILBM_agaIsSupported()
+amiVideo_Bool AMI_ILBM_agaIsSupported()
 {
     struct DisplayInfo displayInfo;
-    
+
     if(GetDisplayInfoData(NULL, (UBYTE*)&displayInfo, sizeof(struct DisplayInfo), DTAG_DISP, NULL))
         return (displayInfo.RedBits == 8);
     else
@@ -61,9 +61,9 @@ void AMI_ILBM_setScreenPalette(const amiVideo_Palette *palette, struct Screen *s
 struct BitMap *AMI_ILBM_createBitMapFromScreen(amiVideo_Screen *screen)
 {
     struct BitMap *bitmap = AllocBitMap(screen->width, screen->height, screen->bitplaneDepth, BMF_DISPLAYABLE, NULL);
-    
+
     if(bitmap != NULL)
         amiVideo_setScreenBitplanePointers(screen, (amiVideo_UByte**)bitmap->Planes); /* Set bitplane pointers to the bitmap */
-    
+
     return bitmap;
 }

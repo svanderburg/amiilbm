@@ -38,7 +38,7 @@ void AMI_ILBM_renderBitMap(const ILBM_Image *image, amiVideo_Screen *screen, str
         {
             unsigned int bitplaneSize = ILBM_calculateRowSize(image) * image->bitMapHeader->h;
             unsigned int i, offset = 0;
-        
+
             for(i = 0; i < screen->bitplaneDepth; i++)
             {
                 memcpy(bitmap->Planes[i], image->bitplanes->chunkData + offset, bitplaneSize);

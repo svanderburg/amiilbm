@@ -31,8 +31,10 @@ Installation
 Compilation and installation of this package can be done using various tools
 from the Geek Gadgets suite. The procedure is straight forward:
 
-    $ make
-    $ make install
+```bash
+$ make
+$ make install
+```
 
 License
 =======

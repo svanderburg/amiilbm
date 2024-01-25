@@ -32,9 +32,9 @@
 static struct Screen *createIntuitionScreen(const ILBM_Image *image, const amiVideo_Long viewportMode)
 {
     UWORD pens[] = { ~0 };
-    
+
     struct Rectangle dclip = { 0, 0, image->bitMapHeader->pageWidth, image->bitMapHeader->pageHeight };
-    
+
     struct TagItem screenTags[] = {
         {SA_Width, image->bitMapHeader->w},
         {SA_Height, image->bitMapHeader->h},
@@ -48,39 +48,39 @@ static struct Screen *createIntuitionScreen(const ILBM_Image *image, const amiVi
         {SA_AutoScroll, TRUE},
         {TAG_DONE, NULL}
     };
-    
+
     return OpenScreenTagList(NULL, screenTags);
 }
 
-int AMI_ILBM_initImage(AMI_ILBM_Image *image, ILBM_Image *ilbmImage)
+amiVideo_Bool AMI_ILBM_initImage(AMI_ILBM_Image *image, ILBM_Image *ilbmImage)
 {
     /* Attach some properties to the facade */
     image->image = ilbmImage;
-    
+
     /* Initialise the range times */
     AMI_ILBM_initRangeTimes(&image->rangeTimes, image->image);
-    
+
     /* Attach the image to screen conversion pipeline */
     AMI_ILBM_attachImageToScreen(ilbmImage, &image->screen);
-    
+
     /* Create output bitmap */
     image->bitmap = AMI_ILBM_createBitMapFromScreen(&image->screen);
-    
+
     if(image->bitmap == NULL)
         return FALSE;
-    
+
     /* Create output intuition screen */
     image->intuitionScreen = createIntuitionScreen(ilbmImage, image->screen.viewportMode);
-    
+
     if(image->intuitionScreen == NULL)
         return FALSE;
-    
+
     /* Set the screen palette */
     AMI_ILBM_setScreenPalette(&image->screen.palette, image->intuitionScreen);
-    
+
     /* Render the output */
     AMI_ILBM_renderBitMap(ilbmImage, &image->screen, image->bitmap);
-    
+
     return TRUE;
 }
 
@@ -117,6 +117,6 @@ struct Window *AMI_ILBM_createWindowFromImage(const AMI_ILBM_Image *image)
         {WA_IDCMP, IDCMP_MENUPICK},
         {TAG_DONE, NULL}
     };
-    
+
     return OpenWindowTagList(NULL, windowTags);
 }

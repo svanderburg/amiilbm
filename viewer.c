@@ -25,66 +25,66 @@
 #include "set.h"
 #include "viewerdisplay.h"
 
-static AMI_ILBM_Action viewILBMImage(AMI_ILBM_Set *set, const unsigned int number, char **filename, const int previousItemEnabled, const int nextItemEnabled)
+static AMI_ILBM_Action viewILBMImage(AMI_ILBM_Set *set, const unsigned int number, char **filename, const int previousItemEnabled, const amiVideo_Bool nextItemEnabled)
 {
     AMI_ILBM_Action action;
-    
+
     /* Initialise a viewer display and handle all user inputs */
     if(AMI_ILBM_initViewerDisplay(set, number, previousItemEnabled, nextItemEnabled))
         action = AMI_ILBM_handleScreenActions(filename);
     else
         action = ACTION_ERROR;
-    
+
     /* Cleanup */
     AMI_ILBM_destroyViewerDisplay();
-    
+
     /* Return action */
     return action;
 }
 
-int AMI_ILBM_viewImages(char *filename)
+amiVideo_Bool AMI_ILBM_viewImages(char *filename)
 {
     char *aslFilename = NULL;
     AMI_ILBM_Action action;
-    
+
     do /* Repeat this every time the user picks the 'Open file' option */
     {
-	AMI_ILBM_Set set;
-	
-	if(!AMI_ILBM_initSetFromFilename(&set, filename))
-	{
-	    fprintf(stderr, "Cannot open IFF file! It may be invalid or missing!\n");
-	    action = ACTION_ERROR;
-	}
-	else if(set.imagesLength == 0)
-	{
-	    fprintf(stderr, "IFF file does not contain any ILBM images!\n");
-	    action = ACTION_ERROR;
-	}
-	else
-	{
-	    unsigned int number = 0;
-	    
-	    do /* Repeat this every time the user picks the 'Previous' or the 'Next' option */
-	    {
-	        action = viewILBMImage(&set, number, &aslFilename, number > 0, number < set.imagesLength - 1);
-	        filename = aslFilename;
-	        
-	        /* If the user has picked 'Previous' or 'Next' we should modify the imageNumber counter */
-		
-		if(action == ACTION_PREVIOUS)
-		    number--;
-		else if(action == ACTION_NEXT)
-		    number++;
-	    }
-	    while(action == ACTION_PREVIOUS || action == ACTION_NEXT);
-	}
-	
-	/* Cleanup */
-	AMI_ILBM_cleanupSet(&set);
+        AMI_ILBM_Set set;
+
+        if(!AMI_ILBM_initSetFromFilename(&set, filename))
+        {
+            fprintf(stderr, "Cannot open IFF file! It may be invalid or missing!\n");
+            action = ACTION_ERROR;
+        }
+        else if(set.imagesLength == 0)
+        {
+            fprintf(stderr, "IFF file does not contain any ILBM images!\n");
+            action = ACTION_ERROR;
+        }
+        else
+        {
+            unsigned int number = 0;
+
+            do /* Repeat this every time the user picks the 'Previous' or the 'Next' option */
+            {
+                action = viewILBMImage(&set, number, &aslFilename, number > 0, number < set.imagesLength - 1);
+                filename = aslFilename;
+
+                /* If the user has picked 'Previous' or 'Next' we should modify the imageNumber counter */
+
+                if(action == ACTION_PREVIOUS)
+                    number--;
+                else if(action == ACTION_NEXT)
+                    number++;
+            }
+            while(action == ACTION_PREVIOUS || action == ACTION_NEXT);
+        }
+
+        /* Cleanup */
+        AMI_ILBM_cleanupSet(&set);
     }
     while(action == ACTION_OPEN);
-    
+
     /* Check whether we have an error or not */
     return (action == ACTION_ERROR);
 }

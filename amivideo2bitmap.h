@@ -28,7 +28,7 @@
 #include <exec/types.h>
 #include <clib/intuition_protos.h>
 
-int AMI_ILBM_agaIsSupported();
+amiVideo_Bool AMI_ILBM_agaIsSupported();
 
 void AMI_ILBM_setScreenPalette(const amiVideo_Palette *palette, struct Screen *screen);
 

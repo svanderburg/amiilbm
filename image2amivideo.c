@@ -28,7 +28,7 @@
 void AMI_ILBM_initPaletteFromImage(const ILBM_Image *image, amiVideo_Palette *palette)
 {
     amiVideo_initPalette(palette, image->bitMapHeader->nPlanes, 8, 0);
-    
+
     if(image->colorMap == NULL)
     {
         /* If no colormap is provided by the image, use a generated grayscale one */
@@ -43,15 +43,15 @@ void AMI_ILBM_initPaletteFromImage(const ILBM_Image *image, amiVideo_Palette *pa
 amiVideo_ULong AMI_ILBM_extractViewportModeFromImage(const ILBM_Image *image)
 {
     amiVideo_ULong paletteFlags, resolutionFlags;
-    
+
     if(image->viewport == NULL)
         paletteFlags = 0; /* If no viewport value is set, assume 0 value */
     else
         paletteFlags = amiVideo_extractPaletteFlags(image->viewport->viewportMode); /* Only the palette flags can be considered "reliable" from a viewport mode value */
-        
+
     /* Resolution flags are determined by looking at the page dimensions */
     resolutionFlags = amiVideo_autoSelectViewportMode(image->bitMapHeader->pageWidth, image->bitMapHeader->pageHeight);
-    
+
     /* Return the combined settings of the previous */
     return paletteFlags | resolutionFlags;
 }
@@ -63,13 +63,13 @@ void AMI_ILBM_attachImageToScreen(ILBM_Image *image, amiVideo_Screen *screen)
 
     /* Initialize the screen with the image's dimensions, bitplane depth, and viewport mode */
     amiVideo_initScreen(screen, image->bitMapHeader->w, image->bitMapHeader->h, image->bitMapHeader->nPlanes, 8, viewportMode);
-    
+
     /* Sets the colors of the palette */
     AMI_ILBM_initPaletteFromImage(image, &screen->palette);
-    
+
     /* Decompress the image body */
     ILBM_unpackByteRun(image);
-    
+
     /* Attach the appropriate pixel surface to the screen */
     if(ILBM_imageIsPBM(image))
         amiVideo_setScreenUncorrectedChunkyPixelsPointer(screen, (amiVideo_UByte*)image->body->chunkData, image->bitMapHeader->w); /* A PBM has chunky pixels in its body */

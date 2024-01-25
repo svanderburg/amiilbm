@@ -10,9 +10,9 @@
 
 let
   pkgs = import nixpkgs {};
-  
+
   version = builtins.readFile ./version;
-  
+
   amigaosenv = import amigaosenvPath {
     inherit (pkgs) stdenv fetchurl lhasa uae fsuae procps bchunk cdrtools;
     inherit (pkgs.xorg) lndir;

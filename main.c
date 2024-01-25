@@ -50,40 +50,40 @@ struct Library *GadToolsBase = NULL;
 /**
  * Opens all required external libraries
  */
-static int openLibraries()
+static amiVideo_Bool openLibraries()
 {
     IntuitionBase = OpenLibrary("intuition.library", INTUITION_VERSION);
-    
+
     if(IntuitionBase == NULL)
     {
-	fprintf(stderr, "Cannot open intuition.library\n");
-	return FALSE;
+        fprintf(stderr, "Cannot open intuition.library\n");
+        return FALSE;
     }
-    
+
     GfxBase = OpenLibrary("graphics.library", GRAPHICS_VERSION);
-    
+
     if(GfxBase == NULL)
     {
-	fprintf(stderr, "Cannot open graphics.library\n");
-	return FALSE;
+        fprintf(stderr, "Cannot open graphics.library\n");
+        return FALSE;
     }
-    
+
     GadToolsBase = OpenLibrary("gadtools.library", GADTOOLS_VERSION);
-    
+
     if(GadToolsBase == NULL)
     {
-	fprintf(stderr, "Cannot open gadtools.library\n");
-	return FALSE;
+        fprintf(stderr, "Cannot open gadtools.library\n");
+        return FALSE;
     }
 
     AslBase = OpenLibrary("asl.library", ASL_VERSION);
-    
+
     if(AslBase == NULL)
     {
-	fprintf(stderr, "Cannot open asl.library!\n");
-	return FALSE;
+        fprintf(stderr, "Cannot open asl.library!\n");
+        return FALSE;
     }
-    
+
     return TRUE;
 }
 
@@ -93,43 +93,43 @@ static int openLibraries()
 static void closeLibraries()
 {
     if(IntuitionBase != NULL)
-	CloseLibrary(IntuitionBase);
-	
+        CloseLibrary(IntuitionBase);
+
     if(GfxBase != NULL)
-	CloseLibrary(IntuitionBase);
+        CloseLibrary(IntuitionBase);
 
     if(GadToolsBase != NULL);
-	CloseLibrary(GadToolsBase);
+        CloseLibrary(GadToolsBase);
 
     if(AslBase != NULL)
-	CloseLibrary(AslBase);
+        CloseLibrary(AslBase);
 }
 
 int main(int argc, char *argv[])
 {
     char *aslFilename = NULL, *filename;
     int status;
-    
+
     if(!openLibraries())
         return 1;
-    
+
     if(argc > 1)
-	filename = argv[1]; /* If a command-line filename is given -> use it */
+        filename = argv[1]; /* If a command-line filename is given -> use it */
     else
     {
-	/* If no command-line filename is given, open a file dialog to pick a file */
-	
-	aslFilename = AMI_ILBM_openILBMFile(NULL, "");
-	filename = aslFilename;
+        /* If no command-line filename is given, open a file dialog to pick a file */
+
+        aslFilename = AMI_ILBM_openILBMFile(NULL, "");
+        filename = aslFilename;
     }
-    
+
     if(filename == NULL)
     {
-	fprintf(stderr, "No valid IFF filename given!\n");
-	status = 1;
+        fprintf(stderr, "No valid IFF filename given!\n");
+        status = 1;
     }
     else
-	return AMI_ILBM_viewImages(filename); /* Try to view the given IFF file */
+        status = !AMI_ILBM_viewImages(filename); /* Try to view the given IFF file */
 
     /* Cleanup */
     free(aslFilename);

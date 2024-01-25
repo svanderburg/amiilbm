@@ -61,7 +61,7 @@ static void shiftDRange(amiVideo_Palette *palette, const ILBM_DRange *drange)
     amiVideo_Color temp = color[drange->dindex[drange->min].index];
 
     for(i = drange->min; i < drange->max; i++)
-	color[drange->dindex[i].index] = color[drange->dindex[i + 1].index];
+        color[drange->dindex[i].index] = color[drange->dindex[i + 1].index];
 
     color[drange->dindex[drange->max].index] = temp;
 }
@@ -69,28 +69,28 @@ static void shiftDRange(amiVideo_Palette *palette, const ILBM_DRange *drange)
 static void shiftCycleInfo(amiVideo_Palette *palette, const ILBM_CycleInfo *cycleInfo)
 {
     amiVideo_Color *color = palette->bitplaneFormat.color;
-    
+
     if(cycleInfo->direction == ILBM_CYCLEINFO_SHIFT_LEFT)
     {
-	/* Shift left */
-	unsigned int i;
-	amiVideo_Color temp = color[cycleInfo->end];
-	
-	for(i = cycleInfo->end; i > cycleInfo->start; i--)
-	    color[i] = color[i - 1];
-	
-	color[cycleInfo->start] = temp;
+        /* Shift left */
+        unsigned int i;
+        amiVideo_Color temp = color[cycleInfo->end];
+
+        for(i = cycleInfo->end; i > cycleInfo->start; i--)
+            color[i] = color[i - 1];
+
+        color[cycleInfo->start] = temp;
     }
     else if(cycleInfo->direction == ILBM_CYCLEINFO_SHIFT_RIGHT)
     {
-	/* Shift right */
-	unsigned int i;
-	amiVideo_Color temp = color[cycleInfo->start];
-	
-	for(i = cycleInfo->start; i < cycleInfo->end; i++)
-	    color[i] = color[i + 1];
-	
-	color[cycleInfo->end] = temp;
+        /* Shift right */
+        unsigned int i;
+        amiVideo_Color temp = color[cycleInfo->start];
+
+        for(i = cycleInfo->start; i < cycleInfo->end; i++)
+            color[i] = color[i + 1];
+
+        color[cycleInfo->end] = temp;
     }
 }
 
@@ -112,18 +112,18 @@ static unsigned int computeCycleInfoTime(unsigned int ticks, const ILBM_CycleInf
 void AMI_ILBM_initRangeTimes(AMI_ILBM_RangeTimes *rangeTimes, const ILBM_Image *image)
 {
     unsigned int i;
-    
+
     rangeTimes->crngTimes = (unsigned int*)malloc(image->colorRangeLength * sizeof(unsigned int));
     rangeTimes->drngTimes = (unsigned int*)malloc(image->drangeLength * sizeof(unsigned int));
     rangeTimes->ccrtTimes = (unsigned int*)malloc(image->cycleInfoLength * sizeof(unsigned int));
     rangeTimes->ticks = 0;
-    
+
     for(i = 0; i < image->colorRangeLength; i++)
         rangeTimes->crngTimes[i] = computeColorRangeTime(rangeTimes->ticks, image->colorRange[i]);
-    
+
     for(i = 0; i < image->drangeLength; i++)
         rangeTimes->drngTimes[i] = computeDRangeTime(rangeTimes->ticks, image->drange[i]);
-    
+
     for(i = 0; i < image->cycleInfoLength; i++)
         rangeTimes->ccrtTimes[i] = computeCycleInfoTime(rangeTimes->ticks, image->cycleInfo[i]);
 }
@@ -141,40 +141,40 @@ void AMI_ILBM_shiftActiveRanges(AMI_ILBM_RangeTimes *rangeTimes, const ILBM_Imag
     unsigned int *crngTimes = rangeTimes->crngTimes;
     unsigned int *drngTimes = rangeTimes->drngTimes;
     unsigned int *ccrtTimes = rangeTimes->ccrtTimes;
-    
+
     for(i = 0; i < image->colorRangeLength; i++)
     {
-	ILBM_ColorRange *colorRange = image->colorRange[i];
-	
-	if(colorRange->active != 0 && rangeTimes->ticks >= crngTimes[i])
-	{
-	    shiftColorRange(palette, colorRange, colorRange->active & ILBM_COLORRANGE_SHIFT_RIGHT);
-	    crngTimes[i] = computeColorRangeTime(rangeTimes->ticks, colorRange); /* Update time */
-	}
+        ILBM_ColorRange *colorRange = image->colorRange[i];
+
+        if(colorRange->active != 0 && rangeTimes->ticks >= crngTimes[i])
+        {
+            shiftColorRange(palette, colorRange, colorRange->active & ILBM_COLORRANGE_SHIFT_RIGHT);
+            crngTimes[i] = computeColorRangeTime(rangeTimes->ticks, colorRange); /* Update time */
+        }
     }
 
     for(i = 0; i < image->drangeLength; i++)
     {
-	ILBM_DRange *drange = image->drange[i];
-	
-	if((drange->flags & ILBM_RNG_ACTIVE) == ILBM_RNG_ACTIVE && rangeTimes->ticks >= drngTimes[i])
-	{
-	    shiftDRange(palette, drange);
-	    drngTimes[i] = computeDRangeTime(rangeTimes->ticks, drange); /* Update time */
-	}
+        ILBM_DRange *drange = image->drange[i];
+
+        if((drange->flags & ILBM_RNG_ACTIVE) == ILBM_RNG_ACTIVE && rangeTimes->ticks >= drngTimes[i])
+        {
+            shiftDRange(palette, drange);
+            drngTimes[i] = computeDRangeTime(rangeTimes->ticks, drange); /* Update time */
+        }
     }
-    
+
     for(i = 0; i < image->cycleInfoLength; i++)
     {
-	ILBM_CycleInfo *cycleInfo = image->cycleInfo[i];
-	
-	if(cycleInfo->direction != 0 && rangeTimes->ticks >= ccrtTimes[i])
-	{
-	    shiftCycleInfo(palette, cycleInfo);
-	    ccrtTimes[i] = computeCycleInfoTime(rangeTimes->ticks, cycleInfo); /* Update time */
-	}
+        ILBM_CycleInfo *cycleInfo = image->cycleInfo[i];
+
+        if(cycleInfo->direction != 0 && rangeTimes->ticks >= ccrtTimes[i])
+        {
+            shiftCycleInfo(palette, cycleInfo);
+            ccrtTimes[i] = computeCycleInfoTime(rangeTimes->ticks, cycleInfo); /* Update time */
+        }
     }
-    
+
     /* Update tick counter */
     rangeTimes->ticks++;
 }

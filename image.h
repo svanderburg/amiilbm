@@ -42,16 +42,16 @@ struct AMI_ILBM_Image
 {
     /** Reference to the ILBM image from which this image is generated */
     ILBM_Image *image;
-    
+
     /** Reference to the screen converting the image to the desired output format */
     amiVideo_Screen screen;
-    
+
     /** Bitmap encoding the pixels as bitplanes */
     struct BitMap *bitmap;
-    
+
     /** Intuition screen suitable for displaying the image */
     struct Screen *intuitionScreen;
-    
+
     /** Maintains the ellapsed cycle range times */
     AMI_ILBM_RangeTimes rangeTimes;
 };
@@ -64,11 +64,11 @@ struct AMI_ILBM_Image
  * @param ilbmImage ILBM image to generate the output from
  * @return TRUE if the initalisation succeeded, otherwise FALSE
  */
-int AMI_ILBM_initImage(AMI_ILBM_Image *image, ILBM_Image *ilbmImage);
+amiVideo_Bool AMI_ILBM_initImage(AMI_ILBM_Image *image, ILBM_Image *ilbmImage);
 
 /**
  * Clears the properties of the provided image from memory.
- * 
+ *
  * @param image An AMI_ILBM_Image instance
  */
 void AMI_ILBM_destroyImage(AMI_ILBM_Image *image);

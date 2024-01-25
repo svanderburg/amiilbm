@@ -21,7 +21,8 @@
 
 #ifndef __AMI_ILBM_VIEWER_H
 #define __AMI_ILBM_VIEWER_H
+#include <libamivideo/amivideotypes.h>
 
-int AMI_ILBM_viewImages(char *filename);
+amiVideo_Bool AMI_ILBM_viewImages(char *filename);
 
 #endif

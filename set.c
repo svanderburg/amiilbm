@@ -23,17 +23,17 @@
 #include <stdlib.h>
 #include <libilbm/ilbm.h>
 
-int AMI_ILBM_initSetFromFilename(AMI_ILBM_Set *set, const char *filename)
+amiVideo_Bool AMI_ILBM_initSetFromFilename(AMI_ILBM_Set *set, const char *filename)
 {
     IFF_Chunk *chunk = ILBM_read(filename);
-    
+
     set->chunk = chunk;
     set->ilbmImages = ILBM_extractImages(chunk, &set->imagesLength);
-    
+
     return ILBM_checkImages(chunk, set->ilbmImages, set->imagesLength);
 }
 
-int AMI_ILBM_initImageFromSet(const AMI_ILBM_Set *set, const unsigned int index, AMI_ILBM_Image *image)
+amiVideo_Bool AMI_ILBM_initImageFromSet(const AMI_ILBM_Set *set, const unsigned int index, AMI_ILBM_Image *image)
 {
     if(index < set->imagesLength)
         return AMI_ILBM_initImage(image, set->ilbmImages[index]);

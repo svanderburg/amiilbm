@@ -58,7 +58,7 @@ AMI_ILBM_ViewerDisplay viewerDisplay;
 
 extern void AMI_ILBM_cycleTask();
 
-int AMI_ILBM_initViewerDisplay(AMI_ILBM_Set *set, const unsigned int number, const int previousItemEnabled, const int nextItemEnabled);
+amiVideo_Bool AMI_ILBM_initViewerDisplay(AMI_ILBM_Set *set, const unsigned int number, const int previousItemEnabled, const int nextItemEnabled);
 
 void AMI_ILBM_destroyViewerDisplay(void);
 
